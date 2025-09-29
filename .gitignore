@@ -1,3 +1,18 @@
+#Ignore data
+*.csv
+
+#Ignore Script
+*.R
+
+#Ignore Proj
+*.Rproj
+
+#ignore OG html and index copy
+quoll_mixed_model.html
+
+#images
+images/
+
 # History files
 .Rhistory
 .Rapp.history

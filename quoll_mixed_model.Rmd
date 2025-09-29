@@ -1,0 +1,211 @@
+---
+title: "Quoll Mixed Models Practice"
+author: "C.S. Stratton"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    toc_depth: 4
+  base_font:
+        google: "Arial"
+---
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 16px;
+      text-align: justified;
+}
+
+
+h1 { /* Header 1 */
+  font-size: 42px;
+  color: darkblue;
+}
+
+h2 { /* Header 2 */
+  font-size: 42px;
+  color: darkblue;
+  text-decoration: underline;
+  }
+
+h3 { /* Header 2 */
+  font-size: 30px;
+  color: orangered;
+  }
+  
+h4 { /* Header 3 */
+  font-size: 24px;
+  color: Black;
+  }
+  
+</style>
+
+```{r setup, include=FALSE}
+
+library(ggplot2)
+library(dplyr)
+library(arm)
+library(MASS)
+library(ggfortify)
+library(nlme)
+library(lme4)
+library(lmerTest)
+library(flexplot)
+library(easystats)
+
+data_quoll <- read.csv("quoll_data.csv")
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Intro to Quolls
+<br>
+<center>
+![](images/eastern_quoll_01.png)  
+<br>
+![](images/quolls_of_australia.jpg)  
+<br>
+![](images/easter_quoll_comparison.jpg)
+<br>
+![](images/eastern_quoll_teeth.jpg)
+<br>
+![](images/eastern_quoll_food.png)
+<br>
+![](images/eastern_quoll_food_2.png)
+</center>
+<br>
+<br>
+
+### Does weight of the individual affect max dispersal distance?
+
+<br>
+
+#### GGplot to visualize to start
+<br>
+
+```{r ggplot og}
+ggplot(data=data_quoll, aes(Weight, MaxDispersal)) + 
+  geom_point() +
+  stat_smooth(method="lm", se=FALSE) + 
+  xlab("Weight (g)") +
+  ylab("Max Dispersal Distance (m)") +
+  theme_bw() +
+  theme(legend.title = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
+<br>
+
+#### Grouped by Sanctuary
+
+<br>
+ggplot faceted by sanctuary
+
+```{r ggplot facet sanctuary}
+ggplot(data=data_quoll, aes(Weight, MaxDispersal)) + 
+  geom_point() +
+  stat_smooth(method="lm", se=FALSE) + 
+  facet_wrap(.~Sanctuary) +
+  xlab("Weight (g)") +
+  ylab("Max Dispersal Distance (m)") +
+  theme_bw() +
+  theme(legend.title = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
+<br>
+```{r models}
+model_quoll_sanctuary_1 <- lmer(MaxDispersal ~ Weight + (Weight | Sanctuary), data=data_quoll)
+summary(model_quoll_sanctuary_1)
+```
+
+#### Grouped by Sex
+<br>
+ggplot faceted by sex
+```{r ggplot facet sex}
+ggplot(data=data_quoll, aes(Weight, MaxDispersal)) + 
+  geom_point() +
+  stat_smooth(method="lm", se=FALSE) + 
+  facet_wrap(.~Sex) +
+  xlab("Weight (g)") +
+  ylab("Max Dispersal Distance (m)") +
+  theme_bw() +
+  theme(legend.title = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+```
+<br>
+model nested within sex
+<br>
+```{r}
+model_quoll_sex_1 <- lmer(MaxDispersal ~ Weight + (Weight | Sex), data=data_quoll)
+summary(model_quoll_sex_1)
+```
+<br>
+Will use the sanctuary model going forward
+<br>
+<br>
+
+#### Second Sanctuary Model
+<br>
+Making the model with fixed slopes
+<br>
+```{r Second Model}
+model_quoll_sanctuary_2 <- lmer(MaxDispersal ~ Weight + (1 | Sanctuary), data=data_quoll) 
+```
+<br>
+<br>
+
+#### Making the two flexplots
+<br>
+Random intercepts and random slopes
+```{r flexplot random}
+flexplot::visualize(model_quoll_sanctuary_1, plot="model") + #use all 18 of the measured individuals
+  ggtitle("Max Dispersal as a function of weight accounting for Sanctuary") +
+  labs(subtitle = "Formula: MaxDispersal ~ Weight + (Weight | Sanctuary)")
+```
+<br>
+Random intercepts and fixed slopes
+```{r flexplot fixed}
+flexplot::visualize(model_quoll_sanctuary_2, plot="model") + #use all 18 of the measured individuals
+  ggtitle("Max Dispersal as a function of weight accounting for Sanctuary") +
+  labs(subtitle = "Formula: MaxDispersal ~ Weight + (1 | Sanctuary)")
+```
+<br>
+
+#### Display the two models
+<br>
+```{r displaying models}
+arm::display(model_quoll_sanctuary_1)
+arm::display(model_quoll_sanctuary_2)
+```
+<br>
+
+#### Comparing parameters
+<br>
+```{r comparing parameters}
+compare_quoll_sanctuary <- parameters::compare_parameters(model_quoll_sanctuary_1, model_quoll_sanctuary_2, select = "{estimate}<br>({se})|{p}")
+print_html(compare_quoll_sanctuary)
+```
+<br>
+
+#### Compare Performance
+<br>
+```{r compare performance}
+performance::compare_performance(model_quoll_sanctuary_1, model_quoll_sanctuary_2)
+```
+<br>
+<br>
+<br>
+#### Interaction LM
+<br>
+Comparing perfomance of an interaction lm just because
+<br>
+
+```{r interaction lm}
+model_quoll_sanctuary_lm <- lm(MaxDispersal ~ Weight*Sanctuary, data=data_quoll)
+performance::compare_performance(model_quoll_sanctuary_1, model_quoll_sanctuary_2, model_quoll_sanctuary_lm)
+
+```
+
